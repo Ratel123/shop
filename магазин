@@ -1,0 +1,594 @@
+import 'package:flutter/material.dart';
+
+void main() {
+  runApp(const MyApp());
+}
+
+// --- ТЕМА И ЦВЕТА ---
+class AppColors {
+  static const Color background = Color(0xFF0F0F0F);
+  static const Color card = Color(0xFF1C1C1E);
+  static const Color primary = Color(0xFF00E055); // Яркий зеленый
+  static const Color textMain = Colors.white;
+  static const Color textSec = Color(0xFF8E8E93);
+  static const Color inputBg = Color(0xFF2C2C2E);
+}
+
+// --- МОДЕЛЬ ДАННЫХ ---
+class Product {
+  final String id;
+  final String title;
+  final int price;
+  final String imageUrl;
+  final String description;
+
+  Product({required this.id, required this.title, required this.price, required this.imageUrl, required this.description});
+}
+
+// Глобальная корзина (для упрощения примера)
+List<Product> cart = [];
+
+// --- ОСНОВНОЕ ПРИЛОЖЕНИЕ ---
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: '3D Store',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        brightness: Brightness.dark,
+        scaffoldBackgroundColor: AppColors.background,
+        primaryColor: AppColors.primary,
+        fontFamily: 'Roboto', // Или любой другой шрифт
+        appBarTheme: const AppBarTheme(
+          backgroundColor: AppColors.background,
+          elevation: 0,
+          titleTextStyle: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          iconTheme: IconThemeData(color: Colors.white),
+        ),
+        colorScheme: const ColorScheme.dark(
+          primary: AppColors.primary,
+          secondary: AppColors.primary,
+          surface: AppColors.card,
+        ),
+      ),
+      home: const MainScreen(),
+    );
+  }
+}
+
+// --- ЭКРАН С НИЖНЕЙ НАВИГАЦИЕЙ ---
+class MainScreen extends StatefulWidget {
+  const MainScreen({super.key});
+
+  @override
+  State<MainScreen> createState() => _MainScreenState();
+}
+
+class _MainScreenState extends State<MainScreen> {
+  int _currentIndex = 0;
+  
+  // Список корневых экранов для табов
+  final List<Widget> _screens = [
+    const CatalogScreen(),
+    const CartScreen(),
+    const ProfileScreen(),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: IndexedStack(
+        index: _currentIndex,
+        children: _screens,
+      ),
+      bottomNavigationBar: Container(
+        decoration: const BoxDecoration(
+          border: Border(top: BorderSide(color: Color(0xFF333333), width: 0.5)),
+        ),
+        child: BottomNavigationBar(
+          currentIndex: _currentIndex,
+          onTap: (index) => setState(() => _currentIndex = index),
+          backgroundColor: AppColors.card,
+          selectedItemColor: AppColors.primary,
+          unselectedItemColor: AppColors.textSec,
+          showUnselectedLabels: true,
+          type: BottomNavigationBarType.fixed,
+          items: const [
+            BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Каталог'),
+            BottomNavigationBarItem(icon: Icon(Icons.shopping_cart), label: 'Корзина'),
+            BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Профиль'),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// --- 1. КАТАЛОГ ---
+class CatalogScreen extends StatelessWidget {
+  const CatalogScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    // Моковые данные
+    final products = [
+      Product(id: '1', title: '3D Фигурка "Воин"', price: 1500, imageUrl: 'https://via.placeholder.com/300/333/fff?text=Warrior', description: 'Детализированная фигурка из фотополимера.'),
+      Product(id: '2', title: 'Услуга печати', price: 800, imageUrl: 'https://via.placeholder.com/300/2ecc71/fff?text=Print', description: 'Печать вашей модели на заказ.'),
+      Product(id: '3', title: 'Фигурка "Робот"', price: 2100, imageUrl: 'https://via.placeholder.com/300/3498db/fff?text=Robot', description: 'Подвижная модель робота.'),
+      Product(id: '4', title: 'Бюст "Герой"', price: 1200, imageUrl: 'https://via.placeholder.com/300/9b59b6/fff?text=Hero', description: 'Коллекционный бюст.'),
+    ];
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Каталог')),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Поиск
+            TextField(
+              decoration: InputDecoration(
+                hintText: 'Поиск...',
+                hintStyle: const TextStyle(color: AppColors.textSec),
+                prefixIcon: const Icon(Icons.search, color: AppColors.textSec),
+                filled: true,
+                fillColor: AppColors.inputBg,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                contentPadding: const EdgeInsets.symmetric(vertical: 0),
+              ),
+            ),
+            const SizedBox(height: 24),
+            
+            // Категории
+            const Text("Популярные категории", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 90,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                children: const [
+                  CategoryItem(icon: Icons.person, label: "Люди"),
+                  CategoryItem(icon: Icons.auto_awesome, label: "Фэнтези"),
+                  CategoryItem(icon: Icons.directions_car, label: "Техника"),
+                  CategoryItem(icon: Icons.home, label: "Декор"),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Сетка товаров
+            const Text("Новинки", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 12),
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                childAspectRatio: 0.75,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+              ),
+              itemCount: products.length,
+              itemBuilder: (context, index) {
+                return ProductCard(product: products[index]);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class CategoryItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  const CategoryItem({super.key, required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 16),
+      child: Column(
+        children: [
+          Container(
+            width: 60, height: 60,
+            decoration: const BoxDecoration(color: AppColors.card, shape: BoxShape.circle),
+            child: Icon(icon, color: Colors.white),
+          ),
+          const SizedBox(height: 6),
+          Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textSec)),
+        ],
+      ),
+    );
+  }
+}
+
+class ProductCard extends StatelessWidget {
+  final Product product;
+  const ProductCard({super.key, required this.product});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => ProductDetailScreen(product: product)));
+      },
+      child: Container(
+        decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(12)),
+        padding: const EdgeInsets.all(10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Container(
+                width: double.infinity,
+                decoration: BoxDecoration(color: Colors.grey[800], borderRadius: BorderRadius.circular(8)),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.network(product.imageUrl, fit: BoxFit.cover),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(product.title, style: const TextStyle(fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
+            const SizedBox(height: 4),
+            Text("${product.price} руб.", style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// --- 2. ДЕТАЛЬНАЯ СТРАНИЦА ТОВАРА ---
+class ProductDetailScreen extends StatelessWidget {
+  final Product product;
+  const ProductDetailScreen({super.key, required this.product});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(leading: const BackButton()),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              height: 300, width: double.infinity,
+              decoration: BoxDecoration(color: Colors.grey[800], borderRadius: BorderRadius.circular(16)),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Image.network(product.imageUrl, fit: BoxFit.cover),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(product.title, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 10),
+            Text(product.description, style: const TextStyle(color: AppColors.textSec)),
+            const SizedBox(height: 20),
+            
+            // Характеристики
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(12)),
+              child: const Column(
+                children: [
+                  Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text("Материал", style: TextStyle(color: AppColors.textSec)), Text("Пластик")]),
+                  SizedBox(height: 10),
+                  Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text("Вес", style: TextStyle(color: AppColors.textSec)), Text("200г")]),
+                ],
+              ),
+            ),
+            
+            const Spacer(),
+            
+            Text("${product.price} руб.", style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.black, // Текст черный на зеленом
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: () {
+                  cart.add(product);
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Добавлено в корзину'), duration: Duration(seconds: 1)));
+                },
+                child: const Text("Купить", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// --- 3. КОРЗИНА ---
+class CartScreen extends StatefulWidget {
+  const CartScreen({super.key});
+
+  @override
+  State<CartScreen> createState() => _CartScreenState();
+}
+
+class _CartScreenState extends State<CartScreen> {
+  @override
+  Widget build(BuildContext context) {
+    // Группируем товары (простая логика для демо)
+    Map<String, int> counts = {};
+    for (var p in cart) {
+      counts[p.id] = (counts[p.id] ?? 0) + 1;
+    }
+    // Уникальные товары для отображения
+    final uniqueItems = cart.toSet().toList();
+    int total = cart.fold(0, (sum, item) => sum + item.price);
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Корзина')),
+      body: cart.isEmpty 
+          ? const Center(child: Text("Корзина пуста", style: TextStyle(color: AppColors.textSec)))
+          : Column(
+            children: [
+              Expanded(
+                child: ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: uniqueItems.length,
+                  itemBuilder: (context, index) {
+                    final item = uniqueItems[index];
+                    final count = counts[item.id] ?? 0;
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(12)),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 60, height: 60,
+                            decoration: BoxDecoration(color: Colors.grey[800], borderRadius: BorderRadius.circular(8)),
+                            child: Image.network(item.imageUrl, fit: BoxFit.cover),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(item.title, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                Text("${item.price} руб.", style: const TextStyle(fontSize: 12, color: AppColors.textSec)),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(color: AppColors.inputBg, borderRadius: BorderRadius.circular(20)),
+                            child: Text("x$count", style: const TextStyle(fontWeight: FontWeight.bold)),
+                          )
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: const BoxDecoration(
+                  color: AppColors.card,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text("Итого:", style: TextStyle(color: AppColors.textSec)),
+                        Text("$total руб.", style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.black,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        onPressed: () {
+                          Navigator.push(context, MaterialPageRoute(builder: (_) => const CheckoutScreen()));
+                        },
+                        child: const Text("Оформить заказ", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            ],
+          ),
+    );
+  }
+}
+
+// --- 4. ОФОРМЛЕНИЕ ЗАКАЗА ---
+class CheckoutScreen extends StatelessWidget {
+  const CheckoutScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Оформление')),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text("Контактная информация", style: TextStyle(color: AppColors.textSec, fontSize: 12)),
+            const SizedBox(height: 8),
+            const CustomInput(hint: "Имя Фамилия"),
+            const SizedBox(height: 12),
+            const CustomInput(hint: "Телефон"),
+            const SizedBox(height: 24),
+            
+            const Text("Адрес доставки", style: TextStyle(color: AppColors.textSec, fontSize: 12)),
+            const SizedBox(height: 8),
+            const CustomInput(hint: "Город, улица, дом...", maxLines: 3),
+            
+            const Spacer(),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.black,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: () {
+                  // Очищаем корзину и переходим к успеху
+                  cart.clear();
+                  Navigator.pushAndRemoveUntil(
+                    context, 
+                    MaterialPageRoute(builder: (_) => const SuccessScreen()),
+                    (route) => false // Удаляем всю историю навигации
+                  );
+                },
+                child: const Text("Оплатить заказ", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class CustomInput extends StatelessWidget {
+  final String hint;
+  final int maxLines;
+  const CustomInput({super.key, required this.hint, this.maxLines = 1});
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      maxLines: maxLines,
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: const TextStyle(color: AppColors.textSec),
+        filled: true,
+        fillColor: AppColors.inputBg,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+      ),
+    );
+  }
+}
+
+// --- 5. УСПЕШНЫЙ ЗАКАЗ ---
+class SuccessScreen extends StatelessWidget {
+  const SuccessScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.check_circle, color: AppColors.primary, size: 80),
+            const SizedBox(height: 24),
+            const Text("Заказ оформлен", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 12),
+            const Text("Ваш заказ успешно оформлен и будет обработан в ближайшее время.", textAlign: TextAlign.center, style: TextStyle(color: AppColors.textSec)),
+            const SizedBox(height: 40),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(color: AppColors.inputBg, borderRadius: BorderRadius.circular(12)),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.numbers, color: Colors.white, size: 20),
+                  SizedBox(width: 10),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text("#1234567890", style: TextStyle(fontWeight: FontWeight.bold)),
+                      Text("Номер заказа", style: TextStyle(fontSize: 10, color: AppColors.textSec)),
+                    ],
+                  )
+                ],
+              ),
+            ),
+            const SizedBox(height: 40),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.black,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: () {
+                  Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const MainScreen()));
+                },
+                child: const Text("Перейти к заказам", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// --- 6. ПРОФИЛЬ ---
+class ProfileScreen extends StatelessWidget {
+  const ProfileScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(actions: [IconButton(onPressed: (){}, icon: const Icon(Icons.settings))]),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            const CircleAvatar(radius: 40, backgroundColor: AppColors.inputBg, backgroundImage: NetworkImage("https://via.placeholder.com/150")),
+            const SizedBox(height: 16),
+            const Text("Александр П.", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            const Text("+7 999 123-45-67", style: TextStyle(color: AppColors.textSec)),
+            const SizedBox(height: 30),
+            
+            _buildMenuItem("История заказов", Icons.access_time),
+            _buildMenuItem("Личные данные", Icons.person_outline),
+            _buildMenuItem("Адреса доставки", Icons.location_on_outlined),
+            _buildMenuItem("Настройки", Icons.notifications_none),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMenuItem(String title, IconData icon) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: Color(0xFF333333)))),
+      child: ListTile(
+        contentPadding: EdgeInsets.zero,
+        leading: Icon(icon, color: Colors.white),
+        title: Text(title),
+        trailing: const Icon(Icons.chevron_right, color: AppColors.textSec),
+        onTap: () {},
+      ),
+    );
+  }
+}
